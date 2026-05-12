@@ -15,7 +15,7 @@ export default function PrivacyPage() {
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-            <img src="/logo.png" alt="GTransfer" className="w-[72px] h-[72px] object-contain" />
+            <img src="/logo.png" alt="GTransfer" className="w-[108px] h-[108px] object-contain" />
             GTransfer
           </Link>
           <Link href="/login" className="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
