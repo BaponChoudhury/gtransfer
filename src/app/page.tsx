@@ -170,10 +170,10 @@ export default async function LandingPage() {
 
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-            <img src="/logo.png" alt="GTransfer" className="w-32 h-32 object-contain" />
-            <span className="hidden sm:inline">GTransfer</span>
+            <img src="/logo.png" alt="GTransfer" className="w-9 h-9 object-contain" />
+            <span>GTransfer</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login" className="hidden sm:inline-flex text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
@@ -499,7 +499,7 @@ export default async function LandingPage() {
           {/* Brand row */}
           <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-gray-700">
-              <img src="/logo.png" alt="GTransfer" className="w-32 h-32 object-contain" />
+              <img src="/logo.png" alt="GTransfer" className="w-8 h-8 object-contain" />
               GTransfer
             </Link>
             <div className="flex flex-wrap justify-center sm:justify-end gap-x-5 gap-y-2 text-xs text-gray-400">
