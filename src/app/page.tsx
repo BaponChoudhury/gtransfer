@@ -170,9 +170,9 @@ export default async function LandingPage() {
 
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-            <img src="/logo.png" alt="GTransfer" className="w-9 h-9 object-contain" />
+            <img src="/logo.png" alt="GTransfer" className="w-12 h-12 object-contain" />
             <span>GTransfer</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
