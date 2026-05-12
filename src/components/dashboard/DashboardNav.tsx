@@ -48,12 +48,12 @@ export default function DashboardNav({ profile, isAdmin = false }: { profile: Pr
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ── Main bar ── */}
-        <div className="flex items-center justify-between py-1">
+        <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
-            <img src="/logo.png" alt="GTransfer" className="w-10 h-10 object-contain" />
-            <span className="hidden sm:inline text-lg">GTransfer</span>
+          <Link href="/dashboard" className="flex items-center gap-3 font-bold text-gray-900 shrink-0 mr-6">
+            <img src="/logo.png" alt="GTransfer" className="w-12 h-12 object-contain" />
+            <span className="text-lg">GTransfer</span>
           </Link>
 
           {/* Desktop nav links */}
