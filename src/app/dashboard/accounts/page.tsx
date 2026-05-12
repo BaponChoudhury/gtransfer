@@ -16,13 +16,18 @@ interface ConnectedAccount {
   created_at: string;
 }
 
+const FREE_ACCOUNT_LIMIT = 2;
+
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
+  const [plan, setPlan] = useState<string>("free");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const justConnected = searchParams.get("connected") === "true";
   const connectError = searchParams.get("error");
+
+  const atLimit = plan === "free" && accounts.length >= FREE_ACCOUNT_LIMIT;
 
   useEffect(() => {
     fetchAccounts();
@@ -32,8 +37,9 @@ export default function AccountsPage() {
     setLoading(true);
     const res = await fetch("/api/accounts");
     if (!res.ok) { setLoading(false); return; }
-    const { accounts } = await res.json();
+    const { accounts, plan } = await res.json();
     setAccounts(accounts ?? []);
+    setPlan(plan ?? "free");
     setLoading(false);
   }
 
@@ -72,9 +78,18 @@ export default function AccountsPage() {
       {connectError && (
         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <AlertCircleIcon className="w-4 h-4 shrink-0" />
-          {connectError === "oauth_denied" ? "Connection cancelled." :
-           connectError === "invalid_state" ? "Security check failed. Please try again." :
+          {connectError === "oauth_denied"   ? "Connection cancelled." :
+           connectError === "invalid_state"  ? "Security check failed. Please try again." :
+           connectError === "account_limit"  ? "Free plan is limited to 2 accounts. Upgrade to Essential or Pro to add more." :
            "Failed to connect account. Please try again."}
+        </div>
+      )}
+      {atLimit && !connectError && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+          <AlertCircleIcon className="w-4 h-4 shrink-0" />
+          You&apos;ve reached the free plan limit of 2 accounts.{" "}
+          <a href="/dashboard/premium" className="underline font-medium">Upgrade</a>{" "}
+          to connect more.
         </div>
       )}
 
@@ -94,7 +109,7 @@ export default function AccountsPage() {
               <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}>
                 <RefreshCwIcon className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
-              <Button onClick={connectNewAccount} size="sm">
+              <Button onClick={connectNewAccount} size="sm" disabled={atLimit}>
                 <PlusIcon className="w-4 h-4" />
                 Add Account
               </Button>
@@ -153,7 +168,7 @@ export default function AccountsPage() {
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
             <li><strong>Primary</strong> — your main Google account (first connected)</li>
             <li><strong>Secondary</strong> — additional accounts you can transfer files to/from</li>
-            <li>You can connect as many secondary accounts as you need</li>
+            <li>Free plan: 1 primary + 1 secondary. <a href="/dashboard/premium" className="underline">Upgrade</a> for unlimited accounts.</li>
             <li>You can transfer in any direction between any two connected accounts</li>
           </ul>
         </CardContent>

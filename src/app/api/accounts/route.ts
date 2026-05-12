@@ -6,14 +6,21 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
-    .from("connected_accounts")
-    .select("id, google_email, display_name, avatar_url, role, scopes, created_at, token_expiry")
-    .eq("user_id", user.id)
-    .order("created_at");
+  const [accountsResult, profileResult] = await Promise.all([
+    supabase
+      .from("connected_accounts")
+      .select("id, google_email, display_name, avatar_url, role, scopes, created_at, token_expiry")
+      .eq("user_id", user.id)
+      .order("created_at"),
+    supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single(),
+  ]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ accounts: data });
+  if (accountsResult.error) return NextResponse.json({ error: accountsResult.error.message }, { status: 500 });
+  return NextResponse.json({ accounts: accountsResult.data, plan: profileResult.data?.plan ?? "free" });
 }
 
 export async function DELETE(request: NextRequest) {
