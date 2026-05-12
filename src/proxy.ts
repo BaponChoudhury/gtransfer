@@ -10,6 +10,12 @@ function hasAuthCookie(request: NextRequest): boolean {
   );
 }
 
+/** Public API paths that don't require a user session. */
+const PUBLIC_API_PATHS = [
+  "/api/prices",
+  "/api/payments/stripe/webhook",
+];
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApiPath = pathname.startsWith("/api/");
@@ -18,7 +24,9 @@ export async function proxy(request: NextRequest) {
   // API routes: return JSON 401 immediately for unauthenticated requests.
   // This ensures API callers never receive an HTML redirect that would crash
   // the RSC router ("Unexpected token '<'" JSON parse error).
-  if (!loggedIn && isApiPath) {
+  // Public API routes (prices, webhooks) are exempt from the auth check.
+  const isPublicApi = PUBLIC_API_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"));
+  if (!loggedIn && isApiPath && !isPublicApi) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
