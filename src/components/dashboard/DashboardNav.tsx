@@ -52,7 +52,7 @@ export default function DashboardNav({ profile, isAdmin = false }: { profile: Pr
 
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
-            <img src="/logo.png" alt="GTransfer" className="w-32 h-32 object-contain" />
+            <img src="/logo.png" alt="GTransfer" className="w-10 h-10 object-contain" />
             <span className="hidden sm:inline text-lg">GTransfer</span>
           </Link>
 
