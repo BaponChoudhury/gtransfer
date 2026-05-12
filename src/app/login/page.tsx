@@ -8,17 +8,29 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function signInWithGoogle() {
     setLoading(true);
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: "email profile",
-      },
-    });
+    setError(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: "email profile",
+        },
+      });
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+      // On success the browser redirects — no need to setLoading(false)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unexpected error. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -55,6 +67,11 @@ export default function LoginPage() {
             <CardDescription>We use your Google account to manage your connections securely.</CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
             <Button
               className="w-full gap-3 h-12 text-base"
               variant="outline"
