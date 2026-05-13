@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeCodeForTokens, getGoogleUserInfo } from "@/lib/google/oauth";
 
@@ -70,6 +71,27 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(`${appUrl}/dashboard/accounts?connected=true`);
     response.cookies.delete("google_oauth_state");
     response.cookies.delete("google_oauth_user");
+
+    // Refresh the Supabase session and write the updated tokens directly onto
+    // the redirect response so the dashboard layout's getUser() succeeds.
+    // (cookieStore.set() in a Route Handler writes to the implicit response,
+    // not to an explicit NextResponse — so we wire up SSR client manually.)
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+    await authClient.auth.getUser();
+
     return response;
   } catch (err) {
     console.error("Google OAuth callback error:", err);
