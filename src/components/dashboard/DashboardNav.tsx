@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CloudIcon, HardDriveIcon, MailIcon, StarIcon, UsersIcon,
+  CloudIcon, HardDriveIcon, MailIcon, UsersIcon,
   LogOutIcon, HistoryIcon, ShieldIcon, MenuIcon, XIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,6 @@ const navItems: { href: string; label: string; icon: React.ElementType; exact?: 
   { href: "/dashboard/accounts", label: "Accounts",       icon: UsersIcon },
   { href: "/dashboard/gmail",    label: "Gmail Transfer", icon: MailIcon },
   { href: "/dashboard/drive",    label: "Drive Transfer", icon: HardDriveIcon,  requiresPlan: "drive"    },
-  { href: "/dashboard/premium",  label: "Pro Transfers",  icon: StarIcon,       requiresPlan: "external" },
   { href: "/dashboard/history",  label: "History",        icon: HistoryIcon },
 ];
 

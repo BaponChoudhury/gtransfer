@@ -207,7 +207,22 @@ Mega.nz, and Drime. Your use of those services is subject to their respective te
 
 ---
 
-### 9. `src/lib/email.ts`
+### 9. `src/components/dashboard/DashboardNav.tsx`
+
+Restore the "Pro Transfers" nav item in the `navItems` array (after the Drive Transfer entry):
+
+```ts
+{ href: "/dashboard/premium",  label: "Pro Transfers",  icon: StarIcon,       requiresPlan: "external" },
+```
+
+Also restore `StarIcon` to the lucide-react imports at the top:
+```ts
+import { CloudIcon, HardDriveIcon, MailIcon, StarIcon, UsersIcon, ... } from "lucide-react";
+```
+
+---
+
+### 10. `src/lib/email.ts`
 
 Restore this line in the Pro upgrade email template (around line 66):
 
