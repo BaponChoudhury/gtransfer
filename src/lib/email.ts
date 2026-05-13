@@ -131,3 +131,50 @@ export async function sendAdminPurchaseNotification({
   if (error) console.error("sendAdminPurchaseNotification error:", error);
   else console.log(`✅ Admin notification sent to ${adminEmail}`);
 }
+
+// ─── Admin new-user notification ─────────────────────────────────────────────
+
+export async function sendAdminNewUserNotification({
+  userEmail,
+  userName,
+}: {
+  userEmail: string;
+  userName?: string | null;
+}) {
+  const adminEmail = getAdminEmail();
+  if (!process.env.RESEND_API_KEY || !adminEmail) return;
+
+  const consoleUrl = "https://console.cloud.google.com/apis/credentials/consent";
+
+  const { error } = await getResend().emails.send({
+    from: `GTransfer <${getFrom()}>`,
+    to: adminEmail,
+    subject: `👤 New signup — ${userEmail}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#111827">
+        <h2 style="color:#111827;margin-bottom:4px">New user signed up</h2>
+        <p style="color:#6b7280;font-size:14px;margin-top:0">Add them to the Google OAuth test users list so they can connect accounts.</p>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:20px 0">
+          <p style="margin:0;font-size:15px;color:#111827">
+            <strong>${userEmail}</strong>${userName ? ` &nbsp;·&nbsp; ${userName}` : ""}
+          </p>
+        </div>
+
+        <p style="font-size:14px;color:#374151">
+          Copy the email above and add it here:
+        </p>
+        <a href="${consoleUrl}"
+           style="display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px">
+          Open Google Cloud Console →
+        </a>
+        <p style="font-size:12px;color:#9ca3af;margin-top:24px">
+          Google Cloud Console → APIs &amp; Services → OAuth consent screen → Test users → Add users
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) console.error("sendAdminNewUserNotification error:", error);
+  else console.log(`✅ New user notification sent for ${userEmail}`);
+}
