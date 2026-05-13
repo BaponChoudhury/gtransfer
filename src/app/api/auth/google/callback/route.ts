@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeCodeForTokens, getGoogleUserInfo } from "@/lib/google/oauth";
 
@@ -68,29 +67,15 @@ export async function GET(request: NextRequest) {
 
     if (upsertError) throw upsertError;
 
-    const response = NextResponse.redirect(`${appUrl}/dashboard/accounts?connected=true`);
+    // Redirect via /auth/connect-done instead of directly to the dashboard.
+    // The callback route is excluded from the proxy middleware (api/auth prefix),
+    // so a direct redirect to /dashboard would bypass the session-refresh middleware
+    // and the dashboard layout's getUser() would fail, bouncing back to login.
+    // /auth/connect-done IS covered by the middleware, which refreshes the session
+    // before the final redirect reaches the dashboard.
+    const response = NextResponse.redirect(`${appUrl}/auth/connect-done`);
     response.cookies.delete("google_oauth_state");
     response.cookies.delete("google_oauth_user");
-
-    // Refresh the Supabase session and write the updated tokens directly onto
-    // the redirect response so the dashboard layout's getUser() succeeds.
-    // (cookieStore.set() in a Route Handler writes to the implicit response,
-    // not to an explicit NextResponse — so we wire up SSR client manually.)
-    const authClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
-    await authClient.auth.getUser();
 
     return response;
   } catch (err) {
