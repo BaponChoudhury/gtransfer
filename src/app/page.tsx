@@ -521,7 +521,7 @@ export default async function LandingPage() {
           {/* Disclaimer */}
           <p className="text-xs text-gray-400 text-center max-w-2xl leading-relaxed">
             GTransfer is an independent tool and is not affiliated with, sponsored by, or endorsed by Google LLC.
-            Google, Gmail, Google Drive, and Google Photos are trademarks of Google LLC.
+            Google, Gmail, and Google Drive are trademarks of Google LLC.
           </p>
         </div>
       </footer>

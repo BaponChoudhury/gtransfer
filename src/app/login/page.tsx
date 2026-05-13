@@ -49,9 +49,9 @@ export default function LoginPage() {
         <div className="grid grid-cols-1 gap-3 text-sm">
           {[
             { icon: "📁", text: "Transfer files between Google Drive accounts" },
-            { icon: "🖼️", text: "Move photos between Google Photos libraries" },
             { icon: "📧", text: "Offload large Gmail attachments to another account" },
-            { icon: "⭐", text: "Premium: Transfer to Mega.nz & Drime" },
+            { icon: "☁️", text: "Free up 40 GB — move files to Mega.nz & Drime" },
+            { icon: "⭐", text: "One-time payment, no subscription" },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-3 bg-white rounded-lg p-3 shadow-sm border border-gray-100">
               <span className="text-lg">{icon}</span>
