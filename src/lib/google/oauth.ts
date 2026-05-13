@@ -4,8 +4,10 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/drive",
-  "https://www.googleapis.com/auth/photoslibrary",
-  "https://mail.google.com/",
+  // gmail.modify covers list/read/insert/trash via REST API and is a
+  // *sensitive* scope (shows a warning users can skip). mail.google.com
+  // is a *restricted* scope that shows "Access blocked" for non-test-users.
+  "https://www.googleapis.com/auth/gmail.modify",
 ];
 
 export function createOAuth2Client(accessToken?: string, refreshToken?: string) {

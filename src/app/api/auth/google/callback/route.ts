@@ -31,6 +31,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createAdminClient();
 
+    // Ensure profiles row exists — the DB trigger normally creates it on
+    // first login, but if it ever fails this upsert acts as a safety net
+    // (avoids FK violation on connected_accounts.user_id → profiles.id).
+    await supabase
+      .from("profiles")
+      .upsert({ id: userId, email: userInfo.email }, { onConflict: "id", ignoreDuplicates: true });
+
     // Count existing accounts to determine role
     const { count } = await supabase
       .from("connected_accounts")
