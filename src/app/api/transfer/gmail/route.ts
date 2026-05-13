@@ -86,7 +86,14 @@ async function runGmailTransfer(
       await insertMessage(dest.access_token, dest.refresh_token, raw);
 
       if (action === "move") {
-        await trashMessage(source.access_token, source.refresh_token, msg.id);
+        // Trash requires gmail.modify (restricted scope). We only request
+        // gmail.readonly + gmail.insert (sensitive scopes) so trash may
+        // fail — log it but don't fail the job; message was already copied.
+        try {
+          await trashMessage(source.access_token, source.refresh_token, msg.id);
+        } catch (trashErr) {
+          console.warn(`Could not trash message ${msg.id} (scope may be missing):`, trashErr);
+        }
       }
 
       transferred++;

@@ -4,10 +4,12 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/drive",
-  // gmail.modify covers list/read/insert/trash via REST API and is a
-  // *sensitive* scope (shows a warning users can skip). mail.google.com
-  // is a *restricted* scope that shows "Access blocked" for non-test-users.
-  "https://www.googleapis.com/auth/gmail.modify",
+  // gmail.readonly + gmail.insert are *sensitive* scopes (skippable warning).
+  // gmail.modify and mail.google.com are *restricted* (hard block for
+  // non-test-users). Using readonly+insert covers all transfer operations
+  // except trashing source messages, which is handled gracefully.
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.insert",
 ];
 
 export function createOAuth2Client(accessToken?: string, refreshToken?: string) {
