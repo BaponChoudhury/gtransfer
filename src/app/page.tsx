@@ -186,6 +186,12 @@ export default async function LandingPage() {
         </div>
       </header>
 
+      {/* ── Early access banner ── */}
+      <div className="bg-amber-50 border-b border-amber-200 py-2.5 px-4 text-center text-sm text-amber-800 flex items-center justify-center gap-2 flex-wrap">
+        <span>🔐</span>
+        <span><strong>Early access:</strong> transfers are enabled within a few hours of signing up. Paid users are prioritised.</span>
+      </div>
+
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 pt-20 pb-28">
         {/* Decorative blobs */}
@@ -431,6 +437,9 @@ export default async function LandingPage() {
           </div>
 
           <div className="mt-8 text-center space-y-1">
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-2 px-4 inline-block">
+              🔐 <strong>Early access:</strong> your account is enabled within a few hours of signing up. Paid users are prioritised.
+            </p>
             <p className="text-xs text-gray-400">
               🇬🇧 Card payments via Stripe &nbsp;·&nbsp; 🇮🇳 UPI accepted for Indian customers
             </p>
