@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import FetchMonitor from "@/components/FetchMonitor";
 import Script from "next/script";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
         <FetchMonitor />
         {children}
+        <GoogleAnalytics gaId="G-F0ECCV170C" />
       </body>
     </html>
   );
