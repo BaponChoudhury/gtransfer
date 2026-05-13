@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  downloadDriveFile,
-  uploadToDrive,
+  downloadDriveFileWithToken,
+  uploadToDriveWithToken,
   deleteDriveFile,
   createDriveFolder,
   listFilesInFolder,
+  getFreshAccessToken,
 } from "@/lib/google/drive";
 import { planAllows, type Plan } from "@/lib/plan";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+export const maxDuration = 300;
 
 interface DriveAccount { id: string; access_token: string; refresh_token: string; google_email: string; }
 interface FileItem     { id: string; name: string; mimeType: string; size?: number; }
@@ -64,14 +68,17 @@ export async function POST(request: NextRequest) {
 
   if (jobErr || !job) return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
 
-  // Run transfer in background
-  runDriveTransfer(job.id, source, dest, files, action, admin).catch(async (err) => {
-    console.error("Drive transfer fatal error:", err);
-    await admin.from("transfer_jobs").update({
-      status: "failed",
-      error_message: err instanceof Error ? err.message : String(err),
-    }).eq("id", job.id);
-  });
+  // waitUntil keeps the Vercel function alive until the transfer finishes
+  // even after the HTTP response has been sent back to the client.
+  waitUntil(
+    runDriveTransfer(job.id, source, dest, files, action, admin).catch(async (err) => {
+      console.error("Drive transfer fatal error:", err);
+      await admin.from("transfer_jobs").update({
+        status: "failed",
+        error_message: err instanceof Error ? err.message : String(err),
+      }).eq("id", job.id);
+    })
+  );
 
   return NextResponse.json({ jobId: job.id });
 }
@@ -96,8 +103,13 @@ async function runDriveTransfer(
 ) {
   const state: TransferState = { transferred: 0, transferredBytes: 0, failed: 0, failedNames: [], totalFiles: items.length };
 
+  // Refresh tokens ONCE for the whole transfer instead of per-file.
+  // This avoids hammering Google's token endpoint and prevents rate-limit errors.
+  const sourceToken = await getFreshAccessToken(source.access_token, source.refresh_token);
+  const destToken   = await getFreshAccessToken(dest.access_token,   dest.refresh_token);
+
   for (const item of items) {
-    await transferItem(item, undefined, source, dest, action, state, jobId, admin);
+    await transferItem(item, undefined, source, dest, sourceToken, destToken, action, state, jobId, admin);
   }
 
   const finalStatus = state.failed === 0 ? "completed"
@@ -124,6 +136,8 @@ async function transferItem(
   destParentFolderId: string | undefined,
   source: DriveAccount,
   dest: DriveAccount,
+  sourceToken: string,
+  destToken: string,
   action: "copy" | "move",
   state: TransferState,
   jobId: string,
@@ -167,7 +181,7 @@ async function transferItem(
       .eq("id", jobId);
 
     for (const child of children) {
-      await transferItem(child, newFolderId, source, dest, action, state, jobId, admin);
+      await transferItem(child, newFolderId, source, dest, sourceToken, destToken, action, state, jobId, admin);
     }
 
     // "Move" folder: delete original after all contents transferred
@@ -178,16 +192,14 @@ async function transferItem(
   } else {
     // ── Regular file ──────────────────────────────────────────────────────────
     try {
-      const { buffer, effectiveMimeType, ext } = await downloadDriveFile(
-        source.access_token, source.refresh_token, item.id, item.mimeType
+      const { buffer, effectiveMimeType, ext } = await downloadDriveFileWithToken(
+        sourceToken, item.id, item.mimeType
       );
 
       const destName = ext && !item.name.endsWith(ext) ? `${item.name}${ext}` : item.name;
 
-      await uploadToDrive(
-        dest.access_token, dest.refresh_token,
-        destName, effectiveMimeType, buffer,
-        destParentFolderId
+      await uploadToDriveWithToken(
+        destToken, destName, effectiveMimeType, buffer, destParentFolderId
       );
 
       if (action === "move") {

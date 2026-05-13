@@ -17,6 +17,10 @@ async function getFreshToken(accessToken: string, refreshToken: string): Promise
   return token;
 }
 
+/** Public alias — lets callers (e.g. the transfer route) pre-fetch a token once
+ *  for the entire transfer instead of refreshing on every file. */
+export const getFreshAccessToken = getFreshToken;
+
 // ─── List ─────────────────────────────────────────────────────────────────────
 
 export async function listDriveFiles(
@@ -119,6 +123,42 @@ export async function downloadDriveFile(
   return { buffer: Buffer.from(arrayBuffer), effectiveMimeType, ext };
 }
 
+/**
+ * Downloads a Drive file using a pre-fetched access token.
+ * Skips the internal token refresh — use when you've already called getFreshAccessToken().
+ */
+export async function downloadDriveFileWithToken(
+  token: string,
+  fileId: string,
+  mimeType?: string
+): Promise<DownloadResult> {
+  const exportFormat = mimeType ? EXPORT_FORMATS[mimeType] : undefined;
+
+  let url: string;
+  let effectiveMimeType: string;
+  let ext: string;
+
+  if (exportFormat) {
+    url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(exportFormat.mimeType)}`;
+    effectiveMimeType = exportFormat.mimeType;
+    ext = exportFormat.ext;
+  } else {
+    url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
+    effectiveMimeType = mimeType ?? "application/octet-stream";
+    ext = "";
+  }
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(unreadable)");
+    throw new Error(`Drive download failed [${res.status}]: ${body.slice(0, 300)}`);
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  return { buffer: Buffer.from(arrayBuffer), effectiveMimeType, ext };
+}
+
 // ─── Upload (native fetch multipart — bypasses gaxios v7 issues) ─────────────
 
 /**
@@ -143,6 +183,57 @@ export async function uploadToDrive(
   });
 
   // Build multipart/related body
+  const metaPart  = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`;
+  const mediaPart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+  const ending    = `\r\n--${boundary}--`;
+
+  const body = Buffer.concat([
+    Buffer.from(metaPart, "utf8"),
+    Buffer.from(mediaPart, "utf8"),
+    content,
+    Buffer.from(ending, "utf8"),
+  ]);
+
+  const res = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": `multipart/related; boundary="${boundary}"`,
+        "Content-Length": String(body.length),
+      },
+      body,
+    }
+  );
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "(unreadable)");
+    throw new Error(`Drive upload failed [${res.status}]: ${errBody.slice(0, 300)}`);
+  }
+
+  return await res.json() as drive_v3.Schema$File;
+}
+
+/**
+ * Uploads a file to Drive using a pre-fetched access token.
+ * Skips the internal token refresh — use when you've already called getFreshAccessToken().
+ */
+export async function uploadToDriveWithToken(
+  token: string,
+  name: string,
+  mimeType: string,
+  content: Buffer,
+  folderId?: string
+): Promise<drive_v3.Schema$File> {
+  const boundary = "gc_boundary_" + Math.random().toString(36).slice(2);
+
+  const metadata = JSON.stringify({
+    name,
+    mimeType,
+    ...(folderId ? { parents: [folderId] } : {}),
+  });
+
   const metaPart  = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`;
   const mediaPart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
   const ending    = `\r\n--${boundary}--`;
