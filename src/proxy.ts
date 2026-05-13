@@ -1,14 +1,9 @@
-// Lightweight proxy — no heavy npm imports so Turbopack compiles this instantly.
-// Real auth verification happens inside each API route handler and dashboard/layout.tsx.
+// Middleware — refreshes the Supabase session on every request so that
+// server components always receive a valid (non-expired) access token.
+// Only middleware can write Set-Cookie headers on the response; server
+// components are read-only, so session refresh MUST happen here.
 import { NextResponse, type NextRequest } from "next/server";
-
-/** Returns true if any Supabase auth cookie is present (session may still be expired).
- *  Handles chunked cookies: sb-xxx-auth-token, sb-xxx-auth-token.0, .1, etc. */
-function hasAuthCookie(request: NextRequest): boolean {
-  return request.cookies.getAll().some(
-    ({ name }) => name.startsWith("sb-") && name.includes("auth-token")
-  );
-}
+import { createServerClient } from "@supabase/ssr";
 
 /** Public API paths that don't require a user session. */
 const PUBLIC_API_PATHS = [
@@ -18,21 +13,50 @@ const PUBLIC_API_PATHS = [
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isApiPath = pathname.startsWith("/api/");
-  const loggedIn = hasAuthCookie(request);
 
-  // API routes: return JSON 401 immediately for unauthenticated requests.
-  // This ensures API callers never receive an HTML redirect that would crash
-  // the RSC router ("Unexpected token '<'" JSON parse error).
-  // Public API routes (prices, webhooks) are exempt from the auth check.
-  const isPublicApi = PUBLIC_API_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"));
+  // Start with a plain next-response; setAll() below may replace it so that
+  // refreshed session cookies are forwarded to the browser.
+  let response = NextResponse.next({ request });
+
+  // Refresh the Supabase session.  If the access token is expired the client
+  // will use the refresh token and write updated cookies onto `response`.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Write cookies onto the *request* so downstream handlers see them,
+          // then rebuild the response so the browser receives Set-Cookie headers.
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // getUser() validates the JWT server-side and triggers a refresh if needed.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const isApiPath   = pathname.startsWith("/api/");
+  const loggedIn    = !!user;
+  const isPublicApi = PUBLIC_API_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+
+  // API routes: return JSON 401 for unauthenticated requests so callers never
+  // receive an HTML redirect that the RSC router would try to JSON.parse.
   if (!loggedIn && isApiPath && !isPublicApi) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  // Page routes: do NOT redirect here. dashboard/layout.tsx calls redirect("/login")
-  // which triggers a proper RSC-level redirect — not an HTML 307 that the RSC
-  // router would try to JSON.parse and crash on.
 
   // Convenience: redirect "/" → "/dashboard" for logged-in users.
   if (loggedIn && pathname === "/") {
@@ -41,7 +65,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
