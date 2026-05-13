@@ -117,7 +117,7 @@ export default function PrivacyPage() {
               <li>We only access Google data that is necessary to perform the transfer you request</li>
               <li>We do not use Google user data to develop, improve, or train AI or ML models</li>
               <li>We do not allow humans to read your Google data unless you have given explicit permission or we are required to do so by law</li>
-              <li>We do not transfer your Google data to third parties except as necessary to provide the Service (e.g. uploading to Mega.nz or Drime at your request)</li>
+              <li>We do not transfer your Google data to third parties except as necessary to provide the Service (e.g. copying files to a second Google account you own)</li>
             </ul>
           </Section>
 
@@ -135,10 +135,6 @@ export default function PrivacyPage() {
               <li>
                 <strong>Resend</strong> — for sending transactional emails. Only your email address and name are
                 shared for this purpose.
-              </li>
-              <li>
-                <strong>Mega.nz / Drime</strong> — only when you explicitly request a transfer to these services.
-                Your credentials for these services are stored encrypted and used solely to perform the transfer.
               </li>
             </ul>
             <p>

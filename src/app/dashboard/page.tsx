@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { HardDriveIcon, MailIcon, StarIcon, ArrowRightIcon, UsersIcon, LockIcon } from "lucide-react";
+import { HardDriveIcon, MailIcon, ArrowRightIcon, UsersIcon, LockIcon } from "lucide-react";
 import { formatDate, formatBytes } from "@/lib/utils";
 import StorageOverview from "@/components/dashboard/StorageOverview";
 import StorageUpsell from "@/components/dashboard/StorageUpsell";
@@ -47,16 +47,6 @@ export default async function DashboardPage() {
       bg: "bg-blue-50",
       available: planAllows(plan, "drive"),
       planRequired: "Essential",
-    },
-    {
-      title: "Pro Transfers",
-      description: "Transfer files to Mega.nz or Drime — up to 40 GB extra free storage",
-      icon: StarIcon,
-      href: "/dashboard/premium",
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-      available: planAllows(plan, "external"),
-      planRequired: "Pro",
     },
   ];
 

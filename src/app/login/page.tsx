@@ -50,7 +50,6 @@ export default function LoginPage() {
           {[
             { icon: "📁", text: "Transfer files between Google Drive accounts" },
             { icon: "📧", text: "Offload large Gmail attachments to another account" },
-            { icon: "☁️", text: "Free up 40 GB — move files to Mega.nz & Drime" },
             { icon: "⭐", text: "One-time payment, no subscription" },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-3 bg-white rounded-lg p-3 shadow-sm border border-gray-100">

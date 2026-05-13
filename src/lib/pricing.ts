@@ -20,7 +20,7 @@ export const PLAN_PRICES = {
     inrAmount:   3999,
     inrDisplay:  "₹3,999",
     stripeLabel: "Pro Plan",
-    stripeDesc:  "Everything in Essential + Mega.nz & Drime transfers (40 GB extra storage)",
+    stripeDesc:  "Everything in Essential + priority support",
   },
 } as const;
 

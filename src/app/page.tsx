@@ -9,7 +9,6 @@ import {
   ShieldCheckIcon,
   StarIcon,
   ZapIcon,
-  ServerIcon,
 } from "lucide-react";
 import { getLivePrices } from "@/lib/settings";
 
@@ -32,15 +31,6 @@ const FEATURES = [
     description:
       "Transfer files, folders, and shared documents from one Drive to another. Supports all Google Workspace file types.",
     badge: "Essential",
-  },
-  {
-    icon: ServerIcon,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    title: "Free Up Google Storage",
-    description:
-      "Move Drive files to Mega.nz or Drime and permanently free up space in your Google account — up to 40 GB extra storage.",
-    badge: "Pro",
   },
 ];
 
@@ -117,9 +107,7 @@ export default async function LandingPage() {
         "Drive transfer between accounts",
         "Multiple linked Google accounts",
       ],
-      missing: [
-        "Transfer to Mega.nz / Drime",
-      ],
+      missing: [],
       cta: "Get Essential",
       href: "/login",
       variant: "default" as const,
@@ -128,15 +116,13 @@ export default async function LandingPage() {
       name: "Pro",
       price: liveData?.pro.gbpDisplay ?? "£39",
       period: "one-time",
-      description: "Everything + 40 GB of extra free storage",
+      description: "Everything in Essential, plus priority support",
       highlight: true,
       features: [
         "Gmail transfer — unlimited",
         "Drive transfer between accounts",
         "Multiple linked Google accounts",
-        "Transfer to Mega.nz (20 GB free)",
-        "Transfer to Drime (20 GB free, EU)",
-        "40 GB extra cloud storage total",
+        "Priority support",
       ],
       missing: [],
       cta: "Get Pro",
@@ -199,20 +185,14 @@ export default async function LandingPage() {
         <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-indigo-100/50 blur-3xl" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-            <StarIcon className="w-3.5 h-3.5" />
-            Pro plan — 40 GB extra free storage included
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight">
             Move your Google data.
             <br />
             <span className="text-blue-600">Simply &amp; securely.</span>
           </h1>
 
           <p className="mt-6 text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            Transfer Gmail, Drive files, and free up storage space — between Google accounts
-            or to external cloud storage. One-time payment, no subscription.
+            Transfer Gmail and Drive files between your Google accounts — simply, securely, and with a one-time payment.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
@@ -247,7 +227,6 @@ export default async function LandingPage() {
               {[
                 { icon: MailIcon,       color: "text-red-500",   bg: "bg-red-50",   label: "Gmail Transfer",         sub: "Emails &amp; attachments" },
                 { icon: HardDriveIcon,  color: "text-blue-500",  bg: "bg-blue-50",  label: "Drive Transfer",         sub: "Files &amp; folders" },
-                { icon: ServerIcon,     color: "text-amber-500", bg: "bg-amber-50", label: "Free Up 40 GB",          sub: "Mega.nz + Drime" },
               ].map(({ icon: Icon, color, bg, label, sub }) => (
                 <div key={label} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-blue-100 hover:bg-blue-50/30 transition-colors">
                   <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
@@ -309,35 +288,6 @@ export default async function LandingPage() {
             ))}
           </div>
 
-          {/* 40 GB highlight banner */}
-          <div className="mt-12 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-2xl p-7 flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex-1">
-              <h3 className="text-xl font-extrabold text-gray-900 mb-1">
-                Free up <span className="text-amber-600">40 GB</span> of Google storage with Pro
-              </h3>
-              <p className="text-gray-600 text-sm">
-                Google gives everyone 15 GB free, and it fills up fast. With Pro, connect Mega.nz
-                (<span className="font-semibold">20 GB free</span>) and Drime (<span className="font-semibold">20 GB free, EU-hosted</span>)
-                — move your Drive files there and permanently reclaim that space in your Google account.
-              </p>
-            </div>
-            <div className="shrink-0 flex flex-col sm:flex-row items-center gap-3">
-              <div className="text-center px-5 py-3 bg-white rounded-xl border border-amber-200 shadow-sm">
-                <p className="text-2xl font-extrabold text-amber-600">20 GB</p>
-                <p className="text-xs text-gray-500 font-medium">Mega.nz</p>
-              </div>
-              <span className="text-gray-400 font-bold text-lg">+</span>
-              <div className="text-center px-5 py-3 bg-white rounded-xl border border-amber-200 shadow-sm">
-                <p className="text-2xl font-extrabold text-amber-600">20 GB</p>
-                <p className="text-xs text-gray-500 font-medium">Drime (EU)</p>
-              </div>
-              <span className="text-gray-400 font-bold text-lg">=</span>
-              <div className="text-center px-5 py-3 bg-amber-500 rounded-xl shadow-sm">
-                <p className="text-2xl font-extrabold text-white">40 GB</p>
-                <p className="text-xs text-amber-100 font-medium">Free storage</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

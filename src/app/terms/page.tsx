@@ -46,9 +46,8 @@ export default function TermsPage() {
           <Section title="2. Description of Service">
             <p>
               GTransfer is an independent third-party tool that helps you transfer files, emails, and data between
-              your own cloud accounts — including Google accounts (Gmail, Google Drive) and external storage services
-              such as Mega.nz and Drime. GTransfer is not affiliated with, sponsored by, or endorsed by Google LLC or
-              any other third-party service provider.
+              your own Google accounts (Gmail, Google Drive). GTransfer is not affiliated with, sponsored by, or
+              endorsed by Google LLC or any other third-party service provider.
             </p>
             <p>
               The Service operates by connecting to your accounts using official OAuth 2.0 protocols. Your credentials
@@ -70,8 +69,8 @@ export default function TermsPage() {
 
           <Section title="4. Use of Third-Party Services">
             <p>
-              GTransfer integrates with third-party services including Google APIs, Stripe (payment processing),
-              Mega.nz, and Drime. Your use of those services is subject to their respective terms and privacy policies.
+              GTransfer integrates with third-party services including Google APIs and Stripe (payment processing).
+              Your use of those services is subject to their respective terms and privacy policies.
               GTransfer&apos;s use of information received from Google APIs adheres to the{" "}
               <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                 Google API Services User Data Policy
