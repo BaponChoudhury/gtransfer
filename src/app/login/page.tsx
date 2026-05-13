@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const URL_ERROR_MESSAGES: Record<string, string> = {
+  auth_failed:    "Sign-in failed. Please try again.",
+  session_lost:   "Your session expired during the account connect flow. Please sign in again.",
+};
+
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    urlError ? (URL_ERROR_MESSAGES[urlError] ?? "An error occurred. Please sign in again.") : null
+  );
 
   async function signInWithGoogle() {
     setLoading(true);
