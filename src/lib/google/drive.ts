@@ -286,6 +286,78 @@ export async function createDriveFolder(
   return data.id;
 }
 
+/**
+ * Creates a folder in Drive using a pre-fetched access token.
+ * Skips the internal token refresh — use when you've already called getFreshAccessToken().
+ */
+export async function createDriveFolderWithToken(
+  token: string,
+  name: string,
+  parentFolderId?: string
+): Promise<string> {
+  const metadata = JSON.stringify({
+    name,
+    mimeType: "application/vnd.google-apps.folder",
+    ...(parentFolderId ? { parents: [parentFolderId] } : {}),
+  });
+
+  const res = await fetch(
+    "https://www.googleapis.com/drive/v3/files?fields=id",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: metadata,
+    }
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(unreadable)");
+    throw new Error(`Drive create folder failed [${res.status}]: ${body.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  if (!data.id) throw new Error(`Failed to create folder "${name}": no id returned`);
+  return data.id as string;
+}
+
+/**
+ * Lists all files directly inside a folder using a pre-fetched access token.
+ * Skips the internal token refresh — use when you've already called getFreshAccessToken().
+ */
+export async function listFilesInFolderWithToken(
+  token: string,
+  folderId: string
+): Promise<drive_v3.Schema$File[]> {
+  const allFiles: drive_v3.Schema$File[] = [];
+  let pageToken: string | undefined;
+  do {
+    const params = new URLSearchParams({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: "nextPageToken, files(id, name, mimeType, size)",
+      pageSize: "100",
+      ...(pageToken ? { pageToken } : {}),
+    });
+
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?${params}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "(unreadable)");
+      throw new Error(`Drive list folder failed [${res.status}]: ${body.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+    allFiles.push(...(data.files ?? []));
+    pageToken = data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return allFiles;
+}
+
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 export async function deleteDriveFile(
@@ -295,4 +367,27 @@ export async function deleteDriveFile(
 ) {
   const drive = getDriveClient(accessToken, refreshToken);
   await drive.files.delete({ fileId });
+}
+
+/**
+ * Deletes a Drive file using a pre-fetched access token.
+ * Skips the internal token refresh — use when you've already called getFreshAccessToken().
+ */
+export async function deleteDriveFileWithToken(
+  token: string,
+  fileId: string
+): Promise<void> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  // 204 No Content = success; 404 = already gone (treat as success)
+  if (!res.ok && res.status !== 204 && res.status !== 404) {
+    const body = await res.text().catch(() => "(unreadable)");
+    throw new Error(`Drive delete failed [${res.status}]: ${body.slice(0, 300)}`);
+  }
 }

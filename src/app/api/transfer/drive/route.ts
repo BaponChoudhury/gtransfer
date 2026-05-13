@@ -5,9 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   downloadDriveFileWithToken,
   uploadToDriveWithToken,
-  deleteDriveFile,
-  createDriveFolder,
-  listFilesInFolder,
+  deleteDriveFileWithToken,
+  createDriveFolderWithToken,
+  listFilesInFolderWithToken,
   getFreshAccessToken,
 } from "@/lib/google/drive";
 import { planAllows, type Plan } from "@/lib/plan";
@@ -15,7 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const maxDuration = 300;
 
-interface DriveAccount { id: string; access_token: string; refresh_token: string; google_email: string; }
+interface DriveAccount { id: string; access_token: string; refresh_token: string; }
 interface FileItem     { id: string; name: string; mimeType: string; size?: number; }
 
 export async function POST(request: NextRequest) {
@@ -109,7 +109,7 @@ async function runDriveTransfer(
   const destToken   = await getFreshAccessToken(dest.access_token,   dest.refresh_token);
 
   for (const item of items) {
-    await transferItem(item, undefined, source, dest, sourceToken, destToken, action, state, jobId, admin);
+    await transferItem(item, undefined, sourceToken, destToken, action, state, jobId, admin);
   }
 
   const finalStatus = state.failed === 0 ? "completed"
@@ -134,8 +134,6 @@ async function runDriveTransfer(
 async function transferItem(
   item: FileItem,
   destParentFolderId: string | undefined,
-  source: DriveAccount,
-  dest: DriveAccount,
   sourceToken: string,
   destToken: string,
   action: "copy" | "move",
@@ -149,7 +147,7 @@ async function transferItem(
     // ── Folder: create in destination then recurse ────────────────────────────
     let newFolderId: string;
     try {
-      newFolderId = await createDriveFolder(dest.access_token, dest.refresh_token, item.name, destParentFolderId);
+      newFolderId = await createDriveFolderWithToken(destToken, item.name, destParentFolderId);
     } catch (err) {
       console.error(`Failed to create folder "${item.name}":`, err);
       state.failed++;
@@ -160,7 +158,7 @@ async function transferItem(
     // List children and recurse
     let children: FileItem[];
     try {
-      const raw = await listFilesInFolder(source.access_token, source.refresh_token, item.id);
+      const raw = await listFilesInFolderWithToken(sourceToken, item.id);
       children = raw.map(f => ({
         id: f.id!,
         name: f.name!,
@@ -181,12 +179,12 @@ async function transferItem(
       .eq("id", jobId);
 
     for (const child of children) {
-      await transferItem(child, newFolderId, source, dest, sourceToken, destToken, action, state, jobId, admin);
+      await transferItem(child, newFolderId, sourceToken, destToken, action, state, jobId, admin);
     }
 
     // "Move" folder: delete original after all contents transferred
     if (action === "move") {
-      try { await deleteDriveFile(source.access_token, source.refresh_token, item.id); }
+      try { await deleteDriveFileWithToken(sourceToken, item.id); }
       catch (err) { console.error(`Failed to delete source folder "${item.name}":`, err); }
     }
   } else {
@@ -203,7 +201,7 @@ async function transferItem(
       );
 
       if (action === "move") {
-        await deleteDriveFile(source.access_token, source.refresh_token, item.id);
+        await deleteDriveFileWithToken(sourceToken, item.id);
       }
 
       state.transferred++;
