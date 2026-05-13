@@ -215,9 +215,11 @@ async function transferItem(
       }).eq("id", jobId);
 
     } catch (err) {
-      console.error(`Failed to transfer "${item.name}":`, err instanceof Error ? err.message : err);
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error(`Failed to transfer "${item.name}":`, reason);
       state.failed++;
-      state.failedNames.push(item.name);
+      // Include the error reason so it appears in the UI error message
+      state.failedNames.push(`${item.name} [${reason.slice(0, 120)}]`);
     }
   }
 }

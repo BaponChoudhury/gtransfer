@@ -22,6 +22,7 @@ export default function DrivePage() {
   const [action, setAction] = useState<"copy" | "move">("copy");
   const [jobId, setJobId] = useState<string | null>(null);
   const [transferring, setTransferring] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const [pageToken, setPageToken] = useState<string | undefined>();
 
   useEffect(() => {
@@ -65,13 +66,19 @@ export default function DrivePage() {
   async function startTransfer() {
     if (!sourceId || !destId || selected.size === 0) return;
     setTransferring(true);
+    setStartError(null);
     const selectedFiles = files.filter(f => selected.has(f.id));
     const res = await fetch("/api/transfer/drive", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sourceAccountId: sourceId, destinationAccountId: destId, files: selectedFiles, action }),
     });
-    if (!res.ok) { setTransferring(false); return; }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setStartError(body.error ?? `Request failed (${res.status})`);
+      setTransferring(false);
+      return;
+    }
     const { jobId } = await res.json();
     setJobId(jobId);
   }
@@ -219,6 +226,11 @@ export default function DrivePage() {
           </Card>
 
           {/* Transfer button + progress */}
+          {startError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {startError}
+            </div>
+          )}
           {jobId ? (
             <TransferProgress jobId={jobId} onComplete={() => { setTransferring(false); setJobId(null); loadFiles(true); setSelected(new Set()); }} />
           ) : (
