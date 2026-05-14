@@ -41,13 +41,12 @@ export async function GET(request: NextRequest) {
             console.error("[auth/callback] profile upsert error:", profileError);
           }
 
-          // New-user admin notification
-          const createdAt  = new Date(user.created_at).getTime();
-          const lastSignIn = new Date(user.last_sign_in_at ?? 0).getTime();
-          const isNewUser  = Math.abs(createdAt - lastSignIn) < 5_000;
+          // New-user admin notification — await before redirect so the
+          // serverless function doesn't terminate with the request in-flight.
+          const isNewUser = Date.now() - new Date(user.created_at).getTime() < 30_000;
           if (isNewUser) {
             const name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
-            sendAdminNewUserNotification({ userEmail: user.email!, userName: name });
+            await sendAdminNewUserNotification({ userEmail: user.email!, userName: name });
           }
         }
       } catch (e) {
