@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuthUser } from "@/lib/dal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -11,9 +12,10 @@ import { planAllows, planBadgeVariant, FREE_EMAIL_LIMIT_BYTES, type Plan } from 
 // Photos transfer is not yet available — hidden from UI
 
 export default async function DashboardPage() {
+  // requireAuthUser() is memoised via React.cache() in dal.ts — shares the
+  // same result as the layout's call with no extra Supabase API round-trip.
+  const user = await requireAuthUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const [{ data: profile }, { data: accounts }, { data: recentJobs }] = await Promise.all([
     supabase.from("profiles").select("full_name, plan, email_transfer_bytes").eq("id", user.id).single(),

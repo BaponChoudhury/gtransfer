@@ -1,9 +1,20 @@
 // Middleware — refreshes the Supabase session on every request so that
 // server components always receive a valid (non-expired) access token.
-// Only middleware can write Set-Cookie headers on the response; server
-// components are read-only, so session refresh MUST happen here.
+//
+// KEY DESIGN DECISION: we use `cookies()` from next/headers rather than
+// `request.cookies` + `NextResponse.next({ request })`.
+//
+// Both the proxy and Server Components call `await cookies()` from the same
+// next/headers module, which returns the shared cookie store for the current
+// request/response cycle.  When setAll() writes refreshed tokens into that
+// store, Server Components reading the same store in the same render pass
+// automatically see the updated values.  This eliminates the race where the
+// proxy refreshes (consuming refresh_token_R1 → R2) but Server Components
+// still read R1 from the original request headers and try — and fail — to
+// refresh again.
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 /** Public API paths that don't require a user session. */
 const PUBLIC_API_PATHS = [
@@ -14,29 +25,22 @@ const PUBLIC_API_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Start with a plain next-response; setAll() below may replace it so that
-  // refreshed session cookies are forwarded to the browser.
-  let response = NextResponse.next({ request });
+  // Shared cookie store — readable AND writable here (proxy runs in Node.js
+  // runtime).  Any Set-Cookie headers produced by setAll() are automatically
+  // flushed onto the response that this function returns.
+  const cookieStore = await cookies();
 
-  // Refresh the Supabase session.  If the access token is expired the client
-  // will use the refresh token and write updated cookies onto `response`.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          // Write cookies onto the *request* so downstream handlers see them,
-          // then rebuild the response so the browser receives Set-Cookie headers.
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            cookieStore.set(name, value, options)
           );
         },
       },
@@ -54,22 +58,17 @@ export async function proxy(request: NextRequest) {
     console.log("[proxy] stale refresh token — clearing session and redirecting to login");
     const loginUrl = new URL("/login?error=session_expired", request.url);
     const cleanResp = NextResponse.redirect(loginUrl);
-    request.cookies
-      .getAll()
+    cookieStore.getAll()
       .filter((c) => c.name.startsWith("sb-"))
       .forEach((c) => cleanResp.cookies.delete(c.name));
     return cleanResp;
   }
 
-  // /auth/connect-done relay: redirect FROM THE PROXY so that any cookies
-  // written by setAll() above (i.e. a freshly-rotated session token) are
-  // reliably included in the redirect response sent to the browser.
-  //
-  // When a Server Component calls redirect(), Next.js does NOT always merge
-  // middleware Set-Cookie headers into the resulting HTTP redirect.  The
-  // browser then navigates to /dashboard with a stale, already-consumed
-  // refresh token, triggering the "refresh_token_not_found" error above.
-  // Doing the redirect here — where we own the response object — avoids that.
+  // /auth/connect-done relay: redirect from the proxy so that any cookies
+  // written by setAll() above (freshly-rotated session tokens) are reliably
+  // included in the redirect response.  Because we now use the shared
+  // cookieStore, the Set-Cookie headers are flushed automatically — no manual
+  // cookie copying required.
   if (pathname === "/auth/connect-done") {
     console.log("[proxy/connect-done] user:", user?.id?.slice(0, 8) ?? "null", "| error:", authError?.message ?? "none");
 
@@ -81,21 +80,7 @@ export async function proxy(request: NextRequest) {
       dest.pathname = "/login";
       dest.search   = "error=session_lost";
     }
-
-    const redirectResp = NextResponse.redirect(dest);
-    // Copy any freshly-rotated session cookies into the redirect response so
-    // the browser stores the new tokens before hitting the dashboard.
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResp.cookies.set(cookie.name, cookie.value, {
-        path:     cookie.path     ?? "/",
-        sameSite: cookie.sameSite as "lax" | "strict" | "none" | undefined,
-        httpOnly: cookie.httpOnly,
-        secure:   cookie.secure,
-        maxAge:   cookie.maxAge,
-        expires:  cookie.expires,
-      });
-    });
-    return redirectResp;
+    return NextResponse.redirect(dest);
   }
 
   const isApiPath   = pathname.startsWith("/api/");
@@ -117,7 +102,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuthUser } from "@/lib/dal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatBytes, formatDate } from "@/lib/utils";
@@ -22,9 +23,8 @@ const STATUS_VARIANT: Record<string, "success" | "default" | "destructive" | "se
 };
 
 export default async function HistoryPage() {
+  const user = await requireAuthUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data: jobs } = await supabase
     .from("transfer_jobs")

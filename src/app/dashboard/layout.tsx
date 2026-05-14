@@ -1,16 +1,17 @@
 export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireAuthUser } from "@/lib/dal";
 import DashboardNav from "@/components/dashboard/DashboardNav";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient().catch(() => redirect("/login"));
+  // requireAuthUser() is memoised via React.cache() — all Server Components
+  // in this render pass share the same getUser() result and only one Supabase
+  // API call is made, eliminating the concurrent-refresh race condition.
+  const user = await requireAuthUser();
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) redirect("/login");
-
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, avatar_url, email, plan")
