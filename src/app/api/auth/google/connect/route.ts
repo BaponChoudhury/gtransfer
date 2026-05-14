@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const isSecure = appUrl.startsWith("https");
+  const isSecure = new URL(request.url).protocol === "https:";
 
   // Check account limit for the user's plan
   const admin = createAdminClient();
@@ -49,12 +49,14 @@ export async function GET(request: NextRequest) {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
+    path: "/",
     maxAge: 600,
   });
   response.cookies.set("google_oauth_user", user.id, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
+    path: "/",
     maxAge: 600,
   });
 

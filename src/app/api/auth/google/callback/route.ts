@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
     // /auth/connect-done IS covered by the middleware, which refreshes the session
     // before the final redirect reaches the dashboard.
     const response = NextResponse.redirect(`${origin}/auth/connect-done`);
-    response.cookies.delete("google_oauth_state");
-    response.cookies.delete("google_oauth_user");
+    response.cookies.delete({ name: "google_oauth_state", path: "/" });
+    response.cookies.delete({ name: "google_oauth_user", path: "/" });
 
     return response;
   } catch (err) {
