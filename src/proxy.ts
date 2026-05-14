@@ -44,7 +44,12 @@ export async function proxy(request: NextRequest) {
   );
 
   // getUser() validates the JWT server-side and triggers a refresh if needed.
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  // Temporary diagnostic: log session state on the connect-done relay page
+  if (pathname === "/auth/connect-done") {
+    console.log("[proxy/connect-done] user:", user?.id?.slice(0, 8) ?? "null", "| error:", authError?.message ?? "none");
+  }
 
   const isApiPath   = pathname.startsWith("/api/");
   const loggedIn    = !!user;
