@@ -46,9 +46,56 @@ export async function proxy(request: NextRequest) {
   // getUser() validates the JWT server-side and triggers a refresh if needed.
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // Temporary diagnostic: log session state on the connect-done relay page
+  // If the refresh token was already consumed (race: a concurrent request
+  // refreshed first, or the session was invalidated server-side), clear the
+  // stale cookies and redirect to login for a clean recovery rather than
+  // bouncing the user through the dashboard with a broken session.
+  if (authError?.code === "refresh_token_not_found") {
+    console.log("[proxy] stale refresh token — clearing session and redirecting to login");
+    const loginUrl = new URL("/login?error=session_expired", request.url);
+    const cleanResp = NextResponse.redirect(loginUrl);
+    request.cookies
+      .getAll()
+      .filter((c) => c.name.startsWith("sb-"))
+      .forEach((c) => cleanResp.cookies.delete(c.name));
+    return cleanResp;
+  }
+
+  // /auth/connect-done relay: redirect FROM THE PROXY so that any cookies
+  // written by setAll() above (i.e. a freshly-rotated session token) are
+  // reliably included in the redirect response sent to the browser.
+  //
+  // When a Server Component calls redirect(), Next.js does NOT always merge
+  // middleware Set-Cookie headers into the resulting HTTP redirect.  The
+  // browser then navigates to /dashboard with a stale, already-consumed
+  // refresh token, triggering the "refresh_token_not_found" error above.
+  // Doing the redirect here — where we own the response object — avoids that.
   if (pathname === "/auth/connect-done") {
     console.log("[proxy/connect-done] user:", user?.id?.slice(0, 8) ?? "null", "| error:", authError?.message ?? "none");
+
+    const dest = request.nextUrl.clone();
+    if (user) {
+      dest.pathname = "/dashboard/accounts";
+      dest.search   = "connected=true";
+    } else {
+      dest.pathname = "/login";
+      dest.search   = "error=session_lost";
+    }
+
+    const redirectResp = NextResponse.redirect(dest);
+    // Copy any freshly-rotated session cookies into the redirect response so
+    // the browser stores the new tokens before hitting the dashboard.
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResp.cookies.set(cookie.name, cookie.value, {
+        path:     cookie.path     ?? "/",
+        sameSite: cookie.sameSite as "lax" | "strict" | "none" | undefined,
+        httpOnly: cookie.httpOnly,
+        secure:   cookie.secure,
+        maxAge:   cookie.maxAge,
+        expires:  cookie.expires,
+      });
+    });
+    return redirectResp;
   }
 
   const isApiPath   = pathname.startsWith("/api/");
