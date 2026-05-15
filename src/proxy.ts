@@ -18,6 +18,18 @@ const PUBLIC_API_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Canonical-domain redirect: force all traffic to www.gtransfer.app so that
+  // session cookies and OAuth state cookies are always on the same domain as the
+  // Google OAuth callback (which uses NEXT_PUBLIC_APP_URL = https://www.gtransfer.app).
+  // Without this, a user on gtransfer.app sets cookies for that domain, but
+  // Google redirects back to www.gtransfer.app where those cookies are invisible.
+  const host = request.headers.get("host") ?? "";
+  if (host === "gtransfer.app") {
+    const url = request.nextUrl.clone();
+    url.host = "www.gtransfer.app";
+    return NextResponse.redirect(url, { status: 301 });
+  }
+
   // Start with a plain next-response; setAll() below may replace it so that
   // refreshed session cookies are forwarded to the browser.
   let response = NextResponse.next({ request });
