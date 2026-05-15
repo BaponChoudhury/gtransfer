@@ -79,7 +79,13 @@ export async function GET(request: NextRequest) {
         } as never,
         { onConflict: "id", ignoreDuplicates: true }
       );
-    if (profileError) console.error("Profile upsert error:", profileError);
+    if (profileError) {
+      // A missing profiles row causes a FK violation on connected_accounts.
+      // Log and bail so the user sees connection_failed rather than a silent
+      // empty-accounts state.
+      console.error("[google/callback] profile upsert error:", profileError);
+      return NextResponse.redirect(`${origin}/dashboard/accounts?error=connection_failed`);
+    }
 
     // Count existing accounts to determine role
     const { count } = await supabase
