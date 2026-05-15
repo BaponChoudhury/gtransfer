@@ -52,6 +52,11 @@ export async function proxy(request: NextRequest) {
   // getUser() validates the JWT server-side and triggers a refresh if needed.
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
+  // Trace every dashboard/auth request so we can follow the post-connect chain.
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/auth/")) {
+    console.log(`[proxy] ${pathname} | user: ${user?.id?.slice(0, 8) ?? "null"} | error: ${authError?.code ?? authError?.message ?? "none"}`);
+  }
+
   // If the refresh token was already consumed (race: a concurrent request
   // refreshed first, or the session was invalidated server-side), clear the
   // stale cookies and redirect to login for a clean recovery rather than
