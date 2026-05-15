@@ -142,7 +142,11 @@ export async function sendAdminNewUserNotification({
   userName?: string | null;
 }) {
   const adminEmail = getAdminEmail();
-  if (!process.env.RESEND_API_KEY || !adminEmail) return;
+  console.log(`[email] sendAdminNewUserNotification → to: ${adminEmail || "MISSING"} | from: ${getFrom()} | key set: ${!!process.env.RESEND_API_KEY}`);
+  if (!process.env.RESEND_API_KEY || !adminEmail) {
+    console.warn("[email] skipping — RESEND_API_KEY or admin email not configured");
+    return;
+  }
 
   const consoleUrl = "https://console.cloud.google.com/apis/credentials/consent";
 

@@ -43,10 +43,13 @@ export async function GET(request: NextRequest) {
 
           // New-user admin notification — await before redirect so the
           // serverless function doesn't terminate with the request in-flight.
-          const isNewUser = Date.now() - new Date(user.created_at).getTime() < 30_000;
-          if (isNewUser) {
+          const ageMs = Date.now() - new Date(user.created_at).getTime();
+          const isNewUser = ageMs < 60_000; // 60s window — OAuth flows can take ~30s
+          const userEmail = user.email ?? user.user_metadata?.email ?? null;
+          console.log(`[auth/callback] ageMs: ${ageMs} | isNewUser: ${isNewUser} | email: ${userEmail ?? "null"}`);
+          if (isNewUser && userEmail) {
             const name = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
-            await sendAdminNewUserNotification({ userEmail: user.email!, userName: name });
+            await sendAdminNewUserNotification({ userEmail, userName: name });
           }
         }
       } catch (e) {
