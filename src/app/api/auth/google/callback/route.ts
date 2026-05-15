@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeCodeForTokens, getGoogleUserInfo } from "@/lib/google/oauth";
 
@@ -9,17 +10,44 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
 
   if (error || !code) {
+    console.log("[google/callback] denied or missing code — error:", error);
     return NextResponse.redirect(`${origin}/dashboard/accounts?error=oauth_denied`);
   }
 
-  const storedState = request.cookies.get("google_oauth_state")?.value;
-  const userId = request.cookies.get("google_oauth_user")?.value;
+  // Diagnostic: log which cookies arrived so we can trace incognito issues.
+  const cookieNames = request.cookies.getAll().map((c) => c.name).join(", ");
+  console.log("[google/callback] cookies present:", cookieNames || "none");
 
-  if (!storedState || storedState !== state || !userId) {
+  const storedState = request.cookies.get("google_oauth_state")?.value;
+  let userId    = request.cookies.get("google_oauth_user")?.value;
+
+  console.log("[google/callback] storedState:", storedState ? "present" : "MISSING");
+  console.log("[google/callback] userId cookie:", userId    ? "present" : "MISSING");
+  console.log("[google/callback] state match:", storedState && state && storedState === state ? "yes" : "no");
+
+  // CSRF guard: the state URL param must match what we stored in the cookie.
+  if (!storedState || storedState !== state) {
+    console.log("[google/callback] state mismatch — possible CSRF or dropped cookie");
     return NextResponse.redirect(`${origin}/dashboard/accounts?error=invalid_state`);
   }
 
-  console.log("[google/callback] starting — userId:", userId?.slice(0, 8));
+  // User ID: prefer the cookie, fall back to the live Supabase session so the
+  // flow still works even if the google_oauth_user cookie was dropped (e.g. by
+  // certain Chrome incognito cookie-partitioning policies).
+  if (!userId) {
+    console.log("[google/callback] userId cookie missing — falling back to Supabase session");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    userId = user?.id ?? undefined;
+    console.log("[google/callback] session fallback userId:", userId ? userId.slice(0, 8) : "null");
+  }
+
+  if (!userId) {
+    console.log("[google/callback] no userId from cookie or session — cannot proceed");
+    return NextResponse.redirect(`${origin}/login?error=session_lost`);
+  }
+
+  console.log("[google/callback] starting — userId:", userId.slice(0, 8));
 
   try {
     const tokens = await exchangeCodeForTokens(code);
@@ -74,7 +102,7 @@ export async function GET(request: NextRequest) {
           role,
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
-          token_expiry: new Date(tokens.expiry_date ?? Date.now() + 3600_000).toISOString(),
+          token_expiry: new Date(tokens.expiry_date ?? Date.now() + 3_600_000).toISOString(),
           scopes: (tokens.scope ?? "").split(" ").filter(Boolean),
         },
         { onConflict: "user_id,google_id" }
@@ -94,7 +122,7 @@ export async function GET(request: NextRequest) {
     // before the final redirect reaches the dashboard.
     const response = NextResponse.redirect(`${origin}/auth/connect-done`);
     response.cookies.delete({ name: "google_oauth_state", path: "/" });
-    response.cookies.delete({ name: "google_oauth_user", path: "/" });
+    response.cookies.delete({ name: "google_oauth_user",  path: "/" });
 
     return response;
   } catch (err) {
